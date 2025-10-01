@@ -54,7 +54,7 @@ jobs:
           HW3_DIR: ${{ github.workspace }}/HW3_Univariate_Lagrange
           HW6_DIR: ${{ github.workspace }}/HW6_MultiDimensionalBasisFunctions
         run: |
-          export PYTHONPATH="$HW3_DIR:HW6_DIR"
+          export PYTHONPATH="$HW3_DIR:$HW6_DIR"
           python3 HW7_MultiDimensionalMappings/MultiDimensionalMappings_Testing.py
       - name: Test Lagrange Basis Function Derivatives (HW8) with unittest
         if: ${{ always() }}
@@ -63,7 +63,7 @@ jobs:
           HW6_DIR: ${{ github.workspace }}/HW6_MultiDimensionalBasisFunctions
           HW7_DIR: ${{ github.workspace }}/HW7_MultiDimensionalMappings
         run: |
-          export PYTHONPATH="$HW3_DIR:HW6_DIR:HW7_DIR"
+          export PYTHONPATH="$HW3_DIR:$HW6_DIR:$HW7_DIR"
           python3 HW8_LagrangeBasisFuncDerivative/LagrangeBasisFuncDerivative_Testing.py
       - name: Test MultiDimensional Jacobians (HW9) with unittest
         if: ${{ always() }}
