@@ -42,6 +42,8 @@ jobs:
           python3 HW8_LagrangeBasisFuncDerivative/LagrangeBasisFuncDerivative_Testing.py
       - name: Test MultiDimensional Jacobians (HW9) with unittest
         if: ${{ always() }}
+        env:
+          PYTHONPATH: ${{ github.workspace }}/HW6_MultiDimensionalBasisFunctions:${{ github.workspace }}/HW8_LagrangeBasisFuncDerivative
         run: |
           python3 HW9_MultiDimensionalJacobians/MultiDimensionalJacobians_Testing.py
       - name: Test Multidimensional Spatial Parametric Gradient (HW10) with unittest
