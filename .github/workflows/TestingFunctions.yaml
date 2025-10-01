@@ -16,7 +16,10 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt -y update
-          sudo apt install python3-numpy python3-scipy python3-matplotlib
+          sudo apt-get purge -y man-db || true
+          sudo apt install -y --no-install-recommends \
+              -o Dpkg::Options::="--path-exclude=/usr/share/man/*" \
+              python3-numpy python3-scipy python3-matplotlib
       - name: Test Univariate B-Splines (HW3) with unittest
         if: ${{ always() }}
         run: |
