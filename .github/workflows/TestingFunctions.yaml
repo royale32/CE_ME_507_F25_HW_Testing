@@ -43,10 +43,10 @@ jobs:
       - name: Test MultiDimensional Jacobians (HW9) with unittest
         if: ${{ always() }}
         env:
-          PYTHONPATH: >-
-            ${{ github.workspace }}/HW6_MultiDimensionalBasisFunctions:
-            ${{ github.workspace }}/HW8_LagrangeBasisFuncDerivative
+          HW6_DIR: ${{ github.workspace }}/HW6_MultiDimensionalBasisFunctions
+          HW8_DIR: ${{ github.workspace }}/HW8_LagrangeBasisFuncDerivative
         run: |
+          export PYTHONPATH="$HW6_DIR:$HW8_DIR"
           python3 HW9_MultiDimensionalJacobians/MultiDimensionalJacobians_Testing.py
       - name: Test Multidimensional Spatial Parametric Gradient (HW10) with unittest
         if: ${{ always() }}
