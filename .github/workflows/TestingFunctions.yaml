@@ -16,11 +16,11 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt -y update
-          sudo apt install python3-numpy
+          sudo apt install python3-numpy python3-scipy python3-matplotlib
       - name: Test Univariate B-Splines (HW3) with unittest
         if: ${{ always() }}
         run: |
-          python3 HW3_Univariate_Lagrange/HW3_Univariate_Lagrange_Testing.py
+          python3 HW3_Univariate_Lagrange/Univariate_Lagrange_Testing.py
       - name: Test Univariate Spatial Mapping (HW6) with unittest
         if: ${{ always() }}
         run: |
