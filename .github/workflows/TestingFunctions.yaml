@@ -26,6 +26,9 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive 
           sudo apt-get update -y 
           sudo apt-get install -y --no-install-recommends \
+            -o Dpkg::Options::="--path-exclude=/usr/share/man/*" \
+            -o Dpkg::Options::="--path-exclude=/usr/share/doc/*" \
+            -o Dpkg::Options::="--path-exclude=/usr/share/locale/*" \
             python3-numpy python3-matplotlib
       - name: Test Univariate B-Splines (HW3) with unittest
         if: ${{ always() }}
