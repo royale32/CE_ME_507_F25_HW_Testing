@@ -17,8 +17,8 @@ sys.path.append('../HW6_MultiDimensionalBasisFunctions/')
 sys.path.append('../HW8_LagrangeBasisFuncDerivative/')
 
 
-import MultiDimensionalBasisFunctions_Solutions as mbasis
-import LagrangeBasisFuncDerivative_Solutions as mderv
+import MultiDimensionalBasisFunctions as mbasis
+import LagrangeBasisFuncDerivative as mderv
 
 # Copy or import functionality that you created 
 # in previous homework assignments to complete
