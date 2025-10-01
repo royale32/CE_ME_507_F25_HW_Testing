@@ -1,0 +1,47 @@
+name: ci-python-unittest
+
+on:
+  push
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          sudo apt -y update
+          sudo apt install python3-numpy
+      - name: Test Univariate B-Splines (HW3) with unittest
+        if: ${{ always() }}
+        run: |
+          python3 HW3_Univariate_Lagrange/HW3_Univariate_Lagrange_Testing.py
+      - name: Test Univariate Spatial Mapping (HW6) with unittest
+        if: ${{ always() }}
+        run: |
+          python3 HW6_MultiDimensionalBasisFunctions/UniDimensionalXMap_Testing.py
+      - name: Test MultiDimensional Basis Functions (HW6) with unittest
+        if: ${{ always() }}
+        run: |
+          python3 HW6_MultiDimensionalBasisFunctions/MultiDimensionalBasisFunctions_Testing.py
+      - name: Test MultiDimensional Mappings (HW7) with unittest
+        if: ${{ always() }}
+        run: |
+          python3 HW7_MultiDimensionalMappings/MultiDimensionalMappings_Testing.py
+      - name: Test Lagrange Basis Function Derivatives (HW8) with unittest
+        if: ${{ always() }}
+        run: |
+          python3 HW8_LagrangeBasisFuncDerivative/LagrangeBasisFuncDerivative_Testing.py
+      - name: Test MultiDimensional Jacobians (HW9) with unittest
+        if: ${{ always() }}
+        run: |
+          python3 HW9_MultiDimensionalJacobians/MultiDimensionalJacobians_Testing.py
+      - name: Test Multidimensional Spatial Parametric Gradient (HW10) with unittest
+        if: ${{ always() }}
+        run: |
+          python3 HW10_MultidimensionalSpatialParametricGradient/MultidimensionalSpatialParametricGradient_Testing.py
