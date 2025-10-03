@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Sep 25 11:06:03 2024
+Created on Wed Oct  1 13:11:26 2025
 
-@author: kendrickshepherd
+@author: Owner
 """
 
 import sys
@@ -16,6 +15,27 @@ from matplotlib import pyplot as plt
 # in previous homework assignments to complete
 # this homework and minimize the amount of 
 # work you have to repeat
+
+sys.path.insert(0, "../HW6_MultiDimensionalBasisFunctions/")
+from MultiDimensionalBasisFunctions import MultiDimensionalBasisFunction
+
+# degx = 2
+# degy = 2
+# interp_pts_x = np.linspace(-1,1,degx+1)
+# interp_pts_y = np.linspace(-1,1,degy+1)
+# MDM_obj = lb2D(degx,degy,interp_pts_x,interp_pts_y)
+
+sys.path.insert(0, "../HW8_LagrangeBasisFuncDerivative/")
+import LagrangeBasisFuncDerivative as lbfd
+
+sys.path.insert(0, "../HW9_MultiDimensionalJacobians/")
+import MultiDimensionalJacobians as mdj
+
+# degx = 2
+# degy = 2
+# interp_pts_x = np.linspace(-1,1,degx+1)
+# interp_pts_y = np.linspace(-1,1,degy+1)
+# MDJ_obj = lb2D_2(degx,degy,interp_pts_x,interp_pts_y)
 
 # this class was created earlier in a previous
 # assignment, but has been extended to cope with
@@ -35,59 +55,101 @@ class LagrangeBasis2D:
     # product of basis functions in the x (xi)
     # and y (eta) directions
     def NBasisFuncs(self):
-        # IMPORT/COPY THIS FROM EARLIER HW
-        return
+        n_bf = (self.degs[0]+1)*(self.degs[1]+1)
+        # (number of Lagrange basis functions in xi direction)*(number of basis functions in eta direction)
+        # (p+1)*(q+1)
+        return n_bf         # total number of 2D basis functions for basis
         
     # basis function evaluation code from 
     # previous homework assignment
     # this should be imported from that assignment
     # or copied before this class is defined
     def EvalBasisFunction(self,A,xi_vals):
-        # IMPORT/COPY THIS FROM EARLIER HW
-        return      
-    
+        return MultiDimensionalBasisFunction(A, self.degs, self.interp_pts, xi_vals)     
+
     # derivative of basis function code
     # from previous homework
     def EvalBasisDerivative(self,A,xis,dim):
         # IMPORT/COPY THIS FROM RECENT HOMEWORK
-        return 
+        return lbfd.LagrangeBasisDervParamMultiD(A,self.degs,self.interp_pts,xis,dim)
 
 
     # Evaluate a sum of basis functions times 
     # coefficients on the parent domain
     def EvaluateFunctionParentDomain(self, d_coeffs, xi_vals):
-        # IMPORT/COPY THIS FROM RECENT HOMEWORK
-        return
+        # self.NBasisFuncs()
+        uh = 0
+        for A in range(self.NBasisFuncs()):
+            uh += d_coeffs[A]*self.EvalBasisFunction(A,xi_vals)
+        return uh
         
     # Evaluate the spatial mapping from xi and eta
     # into x and y coordinates
     def EvaluateSpatialMapping(self, x_pts, xi_vals):
-        # IMPORT/COPY THIS FROM RECENT HOMEWORK
-        return
+        x_y = []
+        x = 0
+        y = 0
+        for A in range(self.NBasisFuncs()):
+            x += x_pts[A][0]*self.EvalBasisFunction(A,xi_vals)
+            y += x_pts[A][1]*self.EvalBasisFunction(A,xi_vals)
+        x_y.append(x)
+        x_y.append(y)
+        return x_y      # vector
     
-    # Evaluate the Deformation Gradient (i.e.
-    # the Jacobian matrix)
     def EvaluateDeformationGradient(self, x_pts, xi_vals):
-        # IMPORT/COPY THIS FROM RECENT HOMEWORK
-        return
+        # COMPLETE THIS TIME
+        DF = [[],[]]
+        x_xi = 0
+        y_xi = 0
+        x_eta = 0
+        y_eta = 0
+        
+        for A in range((self.degs[0]+1)*(self.degs[1]+1)):
+            dim = 0
+            x_xi += x_pts[A][0]*lbfd.LagrangeBasisDervParamMultiD(A,self.degs,self.interp_pts,xi_vals,dim)
+            y_xi += x_pts[A][1]*lbfd.LagrangeBasisDervParamMultiD(A,self.degs,self.interp_pts,xi_vals,dim)
+
+            dim = 1
+            x_eta += x_pts[A][0]*lbfd.LagrangeBasisDervParamMultiD(A,self.degs,self.interp_pts,xi_vals,dim)
+            y_eta += x_pts[A][1]*lbfd.LagrangeBasisDervParamMultiD(A,self.degs,self.interp_pts,xi_vals,dim)
+            
+        DF[0].append(x_xi)
+        DF[1].append(y_xi)
+        DF[0].append(x_eta)
+        DF[1].append(y_eta)
+
+        return DF
     
     # Evaluate the jacobian (or the determinant
     # of the deformation gradient)
     def EvaluateJacobian(self, x_pts, xi_vals):
-        # IMPORT/COPY THIS FROM RECENT HOMEWORK
-        return
+        # COMPLETE THIS TIME
+        DF = self.EvaluateDeformationGradient(x_pts, xi_vals)
+        J = DF[0][0]*DF[1][1] - DF[0][1]*DF[1][0]
+        return J
 
     # Evaluate the parametric gradient of a basis
     # function
     def EvaluateBasisParametricGradient(self,A, xi_vals):
         # COMPLETE THIS TIME
-        return
+        # looking at one of the basis funcs (one A, where there are 9 possible combinations)
+        # ask for the val of the deriv at some xi
+            # look at the derivative of the basis function at the xi and the deriv of other basis func at eta
+        # make empty vector/array
+        xi_derv = self.EvalBasisDerivative(A, xi_vals, dim=0)
+        eta_derv = self.EvalBasisDerivative(A, xi_vals, dim=1)
+        return np.array([[xi_derv],[eta_derv]])
 
     # Evaluate the parametric gradient of a basis
     # function
     def EvaluateBasisSpatialGradient(self,A, x_pts, xi_vals):
         # COMPLETE THIS TIME
-        return
+        p_grad = self.EvaluateBasisParametricGradient(A, xi_vals)
+        DF = self.EvaluateDeformationGradient(x_pts, xi_vals)
+        inv_DF = np.linalg.inv(DF)
+        inv_t_DF = inv_DF.T
+        s_grad = np.linalg.solve(inv_t_DF,p_grad)
+        return s_grad
 
     # Grid plotting functionality that is used
     # in all other plotting functions
@@ -272,3 +334,110 @@ class LagrangeBasis2D:
             ax.quiver(X,Y,U,V)
         plt.show()
 
+# Parametric = parent (xi,eta)
+# Spatial: element (x, y)
+
+def Plot_para_para():
+    # Plot the parametric gradient on the parametric domain
+    # Polynomial degree 2x2
+    degx = 2
+    degy = 2
+    
+    # Parametric/parent domain
+    interp_pts_x = np.linspace(-1,1,degx+1)
+    interp_pts_y = np.linspace(-1,1,degy+1)
+    
+    obj = LagrangeBasis2D(degx, degy, interp_pts_x, interp_pts_y)
+    
+    # Spatial control points
+    x_pts = np.array([[0,0],[0,1],[1,1],[-1,0],[-1,2],[1,2],[-2,0],[-2,3],[1,3]])
+    
+    # Plot all of them
+    for A in range((obj.degs[0]+1)*(obj.degs[1]+1)):
+        obj.PlotBasisFunctionGradient(A,x_pts,npts=21, parent_domain = True, parent_gradient = True)
+    
+    # Plot the first one
+    # A = 0
+    # obj.PlotBasisFunctionGradient(A,x_pts,npts=21, parent_domain = True, parent_gradient = True)
+    
+    return
+
+def Plot_para_spat():
+    # Plot the parametric gradient on the spatial domain
+    # Polynomial degree 2x2
+    degx = 2
+    degy = 2
+    
+    # Parametric/parent domain
+    interp_pts_x = np.linspace(-1,1,degx+1)
+    interp_pts_y = np.linspace(-1,1,degy+1)
+    
+    obj = LagrangeBasis2D(degx, degy, interp_pts_x, interp_pts_y)
+    
+    # Spatial control points
+    x_pts = np.array([[0,0],[0,1],[1,1],[-1,0],[-1,2],[1,2],[-2,0],[-2,3],[1,3]])
+    
+    # Plot all of them
+    for A in range((obj.degs[0]+1)*(obj.degs[1]+1)):
+        obj.PlotBasisFunctionGradient(A,x_pts,npts=21, parent_domain = False, parent_gradient = True)
+    
+    # Plot the first one
+    # A = 0
+    # obj.PlotBasisFunctionGradient(A,x_pts,npts=21, parent_domain = False, parent_gradient = True)
+    
+    return
+    
+def Plot_spat_para():
+    # Plot the spatial gradient on the parametric domain
+    # Polynomial degree 2x2
+    degx = 2
+    degy = 2
+    
+    # Parametric/parent domain
+    interp_pts_x = np.linspace(-1,1,degx+1)
+    interp_pts_y = np.linspace(-1,1,degy+1)
+    
+    obj = LagrangeBasis2D(degx, degy, interp_pts_x, interp_pts_y)
+    
+    # Spatial control points
+    x_pts = np.array([[0,0],[0,1],[1,1],[-1,0],[-1,2],[1,2],[-2,0],[-2,3],[1,3]])
+    
+    # Plot all of them
+    for A in range((obj.degs[0]+1)*(obj.degs[1]+1)):
+        obj.PlotBasisFunctionGradient(A,x_pts,npts=21, parent_domain = True, parent_gradient = False)
+    
+    # Plot the first one
+    # A = 0
+    # obj.PlotBasisFunctionGradient(A,x_pts,npts=21, parent_domain = True, parent_gradient = False)
+    
+    return
+
+def Plot_spat_spat():
+    # Plot the spatial gradient on the spatial domain
+    # Polynomial degree 2x2
+    degx = 2
+    degy = 2
+    
+    # Parametric/parent domain
+    interp_pts_x = np.linspace(-1,1,degx+1)
+    interp_pts_y = np.linspace(-1,1,degy+1)
+    
+    obj = LagrangeBasis2D(degx, degy, interp_pts_x, interp_pts_y)
+    
+    # Spatial control points
+    x_pts = np.array([[0,0],[0,1],[1,1],[-1,0],[-1,2],[1,2],[-2,0],[-2,3],[1,3]])
+    
+    # Plot all of them
+    for A in range((obj.degs[0]+1)*(obj.degs[1]+1)):
+        obj.PlotBasisFunctionGradient(A,x_pts,npts=21, parent_domain = False, parent_gradient = False)
+    
+    # Plot the first one
+    # A = 0
+    # obj.PlotBasisFunctionGradient(A,x_pts,npts=21, parent_domain = False, parent_gradient = False)
+    
+    return
+
+# Plot_para_para()
+# Plot_para_spat()
+# Plot_spat_para()
+# Plot_spat_spat()
