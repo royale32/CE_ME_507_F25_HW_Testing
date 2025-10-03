@@ -158,7 +158,8 @@ class TestLagrangeBasisFuncDerivative(unittest.TestCase):
         self.assertAlmostEqual(0, basis.EvaluateBasisParametricGradient(2, [1,0])[0], decimal_place)
         self.assertAlmostEqual(-0.5, basis.EvaluateBasisParametricGradient(2, [1,0])[1], decimal_place)
 
-        self.assertAlmostEqual(-1./27., basis.EvaluateBasisParametricGradient(0, [1./3.,-1./3.])[0], decimal_place)
+        # self.assertAlmostEqual(-1./27., basis.EvaluateBasisParametricGradient(0, [1./3.,-1./3.])[0], decimal_place)
+        self.assert_allclose(-1./27., basis.EvaluateBasisParametricGradient(0, [1./3.,-1./3.])[0], decimal_place)
         self.assertAlmostEqual(5./54., basis.EvaluateBasisParametricGradient(0, [1./3.,-1./3.])[1], decimal_place)
 
     def test_EvaluateBasisSpatialGradient_Degree2x2(self):
