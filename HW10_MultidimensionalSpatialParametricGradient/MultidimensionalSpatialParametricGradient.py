@@ -136,9 +136,12 @@ class LagrangeBasis2D:
         # ask for the val of the deriv at some xi
             # look at the derivative of the basis function at the xi and the deriv of other basis func at eta
         # make empty vector/array
+        p_grad = np.zeros(2)
         xi_derv = self.EvalBasisDerivative(A, xi_vals, dim=0)
         eta_derv = self.EvalBasisDerivative(A, xi_vals, dim=1)
-        return np.array([[xi_derv],[eta_derv]])
+        p_grad[0] += xi_derv
+        p_grad[1] += eta_derv
+        return p_grad
 
     # Evaluate the parametric gradient of a basis
     # function
@@ -440,4 +443,5 @@ def Plot_spat_spat():
 # Plot_para_para()
 # Plot_para_spat()
 # Plot_spat_para()
+
 # Plot_spat_spat()
