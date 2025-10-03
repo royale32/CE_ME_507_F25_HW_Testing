@@ -149,7 +149,7 @@ class LagrangeBasis2D:
         # COMPLETE THIS TIME
         p_grad = self.EvaluateBasisParametricGradient(A, xi_vals)
         DF = self.EvaluateDeformationGradient(x_pts, xi_vals)
-        t_DF = DF.T
+        t_DF = np.transpose(DF)
         s_grad = np.linalg.solve(t_DF,p_grad)
         return s_grad
 
