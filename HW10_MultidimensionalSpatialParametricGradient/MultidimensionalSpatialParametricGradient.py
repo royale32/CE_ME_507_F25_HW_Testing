@@ -149,9 +149,8 @@ class LagrangeBasis2D:
         # COMPLETE THIS TIME
         p_grad = self.EvaluateBasisParametricGradient(A, xi_vals)
         DF = self.EvaluateDeformationGradient(x_pts, xi_vals)
-        inv_DF = np.linalg.inv(DF)
-        inv_t_DF = inv_DF.T
-        s_grad = np.linalg.solve(inv_t_DF,p_grad)
+        t_DF = DF.T
+        s_grad = np.linalg.solve(t_DF,p_grad)
         return s_grad
 
     # Grid plotting functionality that is used
@@ -440,8 +439,7 @@ def Plot_spat_spat():
     
     return
 
-# Plot_para_para()
-# Plot_para_spat()
-# Plot_spat_para()
-
-# Plot_spat_spat()
+Plot_para_para()
+Plot_para_spat()
+Plot_spat_para()
+Plot_spat_spat()
