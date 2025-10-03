@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Sep 25 11:06:03 2024
+Created on Mon Sep 29 13:21:51 2025
 
-@author: kendrickshepherd
+@author: Owner
 """
 
 import sys
@@ -12,18 +11,22 @@ import math
 import matplotlib
 from matplotlib import pyplot as plt
 
-
-sys.path.append('../HW6_MultiDimensionalBasisFunctions/')
-sys.path.append('../HW8_LagrangeBasisFuncDerivative/')
-
-
-import MultiDimensionalBasisFunctions as mbasis
-import LagrangeBasisFuncDerivative as mderv
-
 # Copy or import functionality that you created 
 # in previous homework assignments to complete
 # this homework and minimize the amount of 
 # work you have to repeat
+sys.path.append('../HW7_MultiDimensionalMappings/')
+import MultiDimensionalMappings as mdm
+
+degx = 2
+degy = 2
+interp_pts_x = np.linspace(-1,1,degx+1)
+interp_pts_y = np.linspace(-1,1,degy+1)
+MDM_obj = mdm.LagrangeBasis2D(degx,degy,interp_pts_x,interp_pts_y)
+
+sys.path.insert(0, "../HW8_LagrangeBasisFuncDerivative/")
+import LagrangeBasisFuncDerivative as lbfd
+
 
 # this class was created earlier in a previous
 # assignment, but has been extended to cope with
@@ -44,8 +47,7 @@ class LagrangeBasis2D:
     # and y (eta) directions
     def NBasisFuncs(self):
         # IMPORT/COPY THIS FROM EARLIER HW
-        return
-
+        return MDM_obj.NBasisFuncs()
         
     # basis function evaluation code from 
     # previous homework assignment
@@ -53,39 +55,59 @@ class LagrangeBasis2D:
     # or copied before this class is defined
     def EvalBasisFunction(self,A,xi_vals):
         # IMPORT/COPY THIS FROM EARLIER HW
-        return      
-     
+        return MDM_obj.EvalBasisFunction(A,xi_vals)     
     
     # derivative of basis function code
     # from previous homework
     def EvalBasisDerivative(self,A,xis,dim):
         # IMPORT/COPY THIS FROM THE MOST RECENT HOMEWORK
-        return 
-
+        return lbfd.LagrangeBasisDervParamMultiD(A,self.degs,self.interp_pts,xis,dim)
 
     # Evaluate a sum of basis functions times 
     # coefficients on the parent domain
     def EvaluateFunctionParentDomain(self, d_coeffs, xi_vals):
         # IMPORT/COPY THIS FROM EARLIER HW
-        return
+        return MDM_obj.EvaluateFunctionParentDomain(d_coeffs, xi_vals)
         
     # Evaluate the spatial mapping from xi and eta
     # into x and y coordinates
     def EvaluateSpatialMapping(self, x_pts, xi_vals):
         # IMPORT/COPY THIS FROM EARLIER HW
-        return
+        return MDM_obj.EvaluateSpatialMapping(x_pts, xi_vals)
     
     # Evaluate the Deformation Gradient (i.e.
     # the Jacobian matrix)
     def EvaluateDeformationGradient(self, x_pts, xi_vals):
         # COMPLETE THIS TIME
-        return
+        DF = [[],[]]
+        x_xi = 0
+        y_xi = 0
+        x_eta = 0
+        y_eta = 0
+        
+        for A in range((self.degs[0]+1)*(self.degs[1]+1)):
+            dim = 0
+            x_xi += x_pts[A][0]*lbfd.LagrangeBasisDervParamMultiD(A,self.degs,self.interp_pts,xi_vals,dim)
+            y_xi += x_pts[A][1]*lbfd.LagrangeBasisDervParamMultiD(A,self.degs,self.interp_pts,xi_vals,dim)
+
+            dim = 1
+            x_eta += x_pts[A][0]*lbfd.LagrangeBasisDervParamMultiD(A,self.degs,self.interp_pts,xi_vals,dim)
+            y_eta += x_pts[A][1]*lbfd.LagrangeBasisDervParamMultiD(A,self.degs,self.interp_pts,xi_vals,dim)
+            
+        DF[0].append(x_xi)
+        DF[1].append(y_xi)
+        DF[0].append(x_eta)
+        DF[1].append(y_eta)
+
+        return DF
     
     # Evaluate the jacobian (or the determinant
     # of the deformation gradient)
     def EvaluateJacobian(self, x_pts, xi_vals):
         # COMPLETE THIS TIME
-        return
+        DF = self.EvaluateDeformationGradient(x_pts, xi_vals)
+        J = DF[0][0]*DF[1][1] - DF[0][1]*DF[1][0]
+        return J
     
     # Grid plotting functionality that is used
     # in all other plotting functions
@@ -204,14 +226,14 @@ class LagrangeBasis2D:
                 X[i,j] = pt[0]
                 Y[i,j] = pt[1]
                 Z[i,j] = self.EvaluateFunctionParentDomain(d_coeffs,[xivals[i],etavals[j]])
-    
+        
         self.PlotGridData(X,Y,Z,contours=contours,zlabel=r"$u_h^e(x,y)$")
 
 
     # plot Jacobians defined on the spatial 
     # or parent domain
     def PlotJacobian(self,x_pts,npts=21,contours = False, parent_domain = False):
-        
+        # See contour plot by setting contours = True
         xivals = np.linspace(self.interp_pts[0][0],self.interp_pts[0][-1],npts+1)
         etavals = np.linspace(self.interp_pts[1][0],self.interp_pts[1][-1],npts)
         
@@ -228,11 +250,119 @@ class LagrangeBasis2D:
                     X[j,i] = pt[0]
                     Y[j,i] = pt[1]
                 Z[j,i] = self.EvaluateJacobian(x_pts,xi_vals)
+                # print(Z[j,i])
     
         if parent_domain:
             self.PlotGridData(Xi,Eta,Z,contours=contours,xlabel=r"$\xi$",ylabel=r"$\eta$",zlabel=r"$J^e(\xi,\eta)$")
         else:
             self.PlotGridData(X,Y,Z,contours=contours,zlabel=r"$J^e(x,y)$")
 
+# SCP = spatial control points
+def Problem4_1():
+    degx = 2
+    degy = 2
+    
+    interp_pts_x = np.linspace(-1,1,degx+1)
+    interp_pts_y = np.linspace(-1,1,degy+1)
+        
+    obj = LagrangeBasis2D(degx, degy, interp_pts_x, interp_pts_y)
+    
+    # Keep only one input uncommented
+    
+        # Input 1:
+    x_pts = np.array([[0,0],[1,0],[2,0],[0,1],[1,1],[2,1],[0,2],[1,2],[2,2]])
 
+        # Run the uncommented input
+    obj.PlotJacobian(x_pts)
 
+def Problem4_2():
+    degx = 2
+    degy = 2
+    
+    interp_pts_x = np.linspace(-1,1,degx+1)
+    interp_pts_y = np.linspace(-1,1,degy+1)
+        
+    obj = LagrangeBasis2D(degx, degy, interp_pts_x, interp_pts_y)
+    
+    # Keep only one input uncommented
+    
+        # Input 2:
+    x_pts = np.array([[0,0],[0.5,0],[1,0],[0,1],[0.5,1],[1,1],[0,2],[0.5,2],[1,2]])
+
+        # Run the uncommented input
+    obj.PlotJacobian(x_pts)
+    
+def Problem4_3():
+    degx = 2
+    degy = 2
+    
+    interp_pts_x = np.linspace(-1,1,degx+1)
+    interp_pts_y = np.linspace(-1,1,degy+1)
+        
+    obj = LagrangeBasis2D(degx, degy, interp_pts_x, interp_pts_y)
+    
+    # Keep only one input uncommented
+    
+        # Input 3:
+    x_pts = np.array([[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]])
+
+        # Run the uncommented input
+    obj.PlotJacobian(x_pts)
+    
+def Problem4_4():
+    degx = 2
+    degy = 2
+    
+    interp_pts_x = np.linspace(-1,1,degx+1)
+    interp_pts_y = np.linspace(-1,1,degy+1)
+        
+    obj = LagrangeBasis2D(degx, degy, interp_pts_x, interp_pts_y)
+    
+    # Keep only one input uncommented
+    
+        # Input 4:
+    x_pts = np.array([[0,2],[0,1],[0,0],[1,2],[1,1],[1,0],[2,2],[2,1],[2,0]])
+    
+        # Run the uncommented input
+    obj.PlotJacobian(x_pts)
+
+def Problem4_5():
+    degx = 2
+    degy = 2
+    
+    interp_pts_x = np.linspace(-1,1,degx+1)
+    interp_pts_y = np.linspace(-1,1,degy+1)
+        
+    obj = LagrangeBasis2D(degx, degy, interp_pts_x, interp_pts_y)
+    
+    # Keep only one input uncommented
+    
+        # Input 5:
+    x_pts = np.array([[0,0],[1,0],[2,0],[1,1],[1,1],[1,1],[2,2],[1,2],[0,2]])
+    
+        # Run the uncommented input
+    obj.PlotJacobian(x_pts)
+
+def Problem4_6():
+    degx = 2
+    degy = 2
+    
+    interp_pts_x = np.linspace(-1,1,degx+1)
+    interp_pts_y = np.linspace(-1,1,degy+1)
+        
+    obj = LagrangeBasis2D(degx, degy, interp_pts_x, interp_pts_y)
+    
+    # Keep only one input uncommented
+    
+        # Input 6:
+    x_pts = np.array([[0,0],[0,1],[1,1],[-1,0],[-1,2],[1,2],[-2,0],[-2,3],[1,3]])
+    
+        # Run the uncommented input
+    obj.PlotJacobian(x_pts)
+    
+Problem4_1()
+Problem4_2()
+Problem4_3()
+Problem4_4()
+Problem4_5()
+Problem4_6()
