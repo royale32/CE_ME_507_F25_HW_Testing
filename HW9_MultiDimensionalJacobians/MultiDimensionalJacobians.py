@@ -15,14 +15,14 @@ from matplotlib import pyplot as plt
 # in previous homework assignments to complete
 # this homework and minimize the amount of 
 # work you have to repeat
-sys.path.append('../HW7_MultiDimensionalMappings/')
-import MultiDimensionalMappings as mdm
+sys.path.insert(0, "../HW6_MultiDimensionalBasisFunctions")
+from MultiDimensionalBasisFunctions import MultiDimensionalBasisFunction
 
-degx = 2
-degy = 2
-interp_pts_x = np.linspace(-1,1,degx+1)
-interp_pts_y = np.linspace(-1,1,degy+1)
-MDM_obj = mdm.LagrangeBasis2D(degx,degy,interp_pts_x,interp_pts_y)
+# degx = 2
+# degy = 2
+# interp_pts_x = np.linspace(-1,1,degx+1)
+# interp_pts_y = np.linspace(-1,1,degy+1)
+# MDM_obj = mdm.LagrangeBasis2D(degx,degy,interp_pts_x,interp_pts_y)
 
 sys.path.insert(0, "../HW8_LagrangeBasisFuncDerivative/")
 import LagrangeBasisFuncDerivative as lbfd
@@ -46,34 +46,39 @@ class LagrangeBasis2D:
     # product of basis functions in the x (xi)
     # and y (eta) directions
     def NBasisFuncs(self):
-        # IMPORT/COPY THIS FROM EARLIER HW
-        return MDM_obj.NBasisFuncs()
+        n_bf = (self.degs[0]+1)*(self.degs[1]+1)
+        # (number of Lagrange basis functions in xi direction)*(number of basis functions in eta direction)
+        # (p+1)*(q+1)
+        return n_bf         # total number of 2D basis functions for basis
         
     # basis function evaluation code from 
     # previous homework assignment
     # this should be imported from that assignment
     # or copied before this class is defined
     def EvalBasisFunction(self,A,xi_vals):
-        # IMPORT/COPY THIS FROM EARLIER HW
-        return MDM_obj.EvalBasisFunction(A,xi_vals)     
-    
-    # derivative of basis function code
-    # from previous homework
-    def EvalBasisDerivative(self,A,xis,dim):
-        # IMPORT/COPY THIS FROM THE MOST RECENT HOMEWORK
-        return lbfd.LagrangeBasisDervParamMultiD(A,self.degs,self.interp_pts,xis,dim)
+        return MultiDimensionalBasisFunction(A, self.degs, self.interp_pts, xi_vals)       
 
     # Evaluate a sum of basis functions times 
     # coefficients on the parent domain
     def EvaluateFunctionParentDomain(self, d_coeffs, xi_vals):
-        # IMPORT/COPY THIS FROM EARLIER HW
-        return MDM_obj.EvaluateFunctionParentDomain(d_coeffs, xi_vals)
+        # self.NBasisFuncs()
+        uh = 0
+        for A in range(self.NBasisFuncs()):
+            uh += d_coeffs[A]*self.EvalBasisFunction(A,xi_vals)
+        return uh
         
     # Evaluate the spatial mapping from xi and eta
     # into x and y coordinates
     def EvaluateSpatialMapping(self, x_pts, xi_vals):
-        # IMPORT/COPY THIS FROM EARLIER HW
-        return MDM_obj.EvaluateSpatialMapping(x_pts, xi_vals)
+        x_y = []
+        x = 0
+        y = 0
+        for A in range(self.NBasisFuncs()):
+            x += x_pts[A][0]*self.EvalBasisFunction(A,xi_vals)
+            y += x_pts[A][1]*self.EvalBasisFunction(A,xi_vals)
+        x_y.append(x)
+        x_y.append(y)
+        return x_y      # vector
     
     # Evaluate the Deformation Gradient (i.e.
     # the Jacobian matrix)
