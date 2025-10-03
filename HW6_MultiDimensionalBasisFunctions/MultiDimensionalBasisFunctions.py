@@ -21,7 +21,8 @@ from matplotlib import pyplot as plt
 
 # IMPORT (or copy) your code from HW3 here
 # which evaluated a Lagrane polynomial basis function
-from CE_ME_507_Lagrange_Basis_Function_Code import LagrangeBasisEvaluation
+sys.path.append('../HW3_Univariate_Lagrange/')
+import Univariate_Lagrange_Basis_Functions as ulbf
 
 # idxs = a (a is a list of indexes)
 # degs = p (polynomial degrees in each direction)
@@ -46,7 +47,7 @@ def MultiDimensionalBasisFunctionIdxs(idxs,degs,interp_pts,xis):
         xi = xis[i]
         a = idxs[i]
        
-        Ni *= LagrangeBasisEvaluation(p, pts, xi, a)
+        Ni *= ulbf.LagrangeBasisEvaluation(p, pts, xi, a)
     return Ni
     
 # higher-dimensional basis function with single index

@@ -79,7 +79,7 @@ def Input4():
     interp_pts = [-1,0,1]
     PlotXMap(deg,spatial_pts,interp_pts)
     
-Input1()
-Input2()
-Input3()
-Input4()
+# Input1()
+# Input2()
+# Input3()
+# Input4()
