@@ -88,10 +88,8 @@ def InterpolateFunction(p,pts2D,n_samples = 101):
             func_y += bf_y * coeffs[a]                          # after get bf_y for that basis func, mult it by the coeff corresponding to that basis function and add to the total function value at that point
         ys[i]=(func_y)                                          # the index of the array of y values of the polynomial at that specific x-value is equal to what you calculated the total function's y-value to be at that point
     
-    fig, ax = plt.subplots()    
-    plt.plot(xis,ys)
-    plt.scatter(pts, coeffs,color='r')
-
+    return xis, ys
+    
 def PlotInterpolateFunction(p,pts2D,n_samples = 101):
     xis, ys = InterpolateFunction(p, pts2D, n_samples)
     fig, ax = plt.subplots()    
@@ -106,3 +104,4 @@ PlotLagrangeBasisFunctions(p,myaltpts) # used to say mypts, i think it wasn't wo
 
 my2Dpts = [[0,1],[4,6],[6,2],[7,11]]
 InterpolateFunction(p,my2Dpts)
+
