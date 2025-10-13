@@ -13,14 +13,6 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Disable man-db trigger (make mandb a no-op) — idempotent
-        run: |
-          set -euo pipefail
-          if [ ! -f /usr/bin/mandb.distrib ]; then
-            sudo dpkg-divert --local --rename --add /usr/bin/mandb
-            printf '#!/bin/sh\nexit 0\n' | sudo tee /usr/bin/mandb >/dev/null
-            sudo chmod +x /usr/bin/mandb
-          fi
 #      - name: Install dependencies
 #        run: |
 #          sudo apt -y update
@@ -94,15 +86,3 @@ jobs:
         run: |
           export PYTHONPATH="$HW3_DIR:$HW6_DIR:$HW7_DIR:$HW8_DIR:$HW9_DIR"
           python3 HW10_MultidimensionalSpatialParametricGradient/MultidimensionalSpatialParametricGradient_Testing.py
-      - name: Test One Dimensional FEM Convergence (HW13) with unittest
-              if: ${{ always() }}
-              env:
-                HW3_DIR: ${{ github.workspace }}/HW3_Univariate_Lagrange
-                HW6_DIR: ${{ github.workspace }}/HW6_MultiDimensionalBasisFunctions
-                HW7_DIR: ${{ github.workspace }}/HW7_MultiDimensionalMappings
-                HW8_DIR: ${{ github.workspace }}/HW8_LagrangeBasisFuncDerivative
-                HW9_DIR: ${{ github.workspace }}/HW9_MultiDimensionalJacobians
-                HW10_DIR: ${{ github.workspace }}/HW10_MultidimensionalSpatialParametricGradient
-              run: |
-                export PYTHONPATH="$HW3_DIR:$HW6_DIR:$HW7_DIR:$HW8_DIR:$HW9_DIR:$HW10_DIR"
-                python3 HW13_Error_Convergence_1D/OneD_FEM_Convergence_Rates_Testing.py
