@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Oct  7 12:07:01 2024
+Created on Wed Oct  8 14:00:38 2025
 
-@author: kendrickshepherd
+@author: Owner
 """
 
 import sys
@@ -13,14 +12,13 @@ from matplotlib import pyplot as plt
 # Import appropriate functionality to complete this task
 # here is some example text that could inform you how to do this
 sys.path.append('../HW3_Univariate_Lagrange/')
-sys.path.append('../HW6_MultiDimensionalBasisFunctions/')
 sys.path.append('../HW8_LagrangeBasisFuncDerivative/')
+sys.path.append('../HW6_MultiDimensionalBasisFunctions/')
 
-import Univariate_Lagrange_Basis_Functions_Solutions as basis
-import UniDimensionalXMap_Solutions as xmap
-import LagrangeBasisFuncDerivative_Solutions as derv
+import Univariate_Lagrange_Basis_Functions as uni
+import LagrangeBasisFuncDerivative as derv
+import UniDimensionalXMap as xmap
 import Gaussian_Quadrature as gq
-
 
 def DeformationGradient1D(deg,x_bnds,xi):
     val = 0
@@ -57,7 +55,7 @@ def LocalForceMatrix(deg,x_bnds,f,gaussian):
         jac = DeformationGradient1D(deg, x_bnds, xi)
         f_g = f(x_g)
         for a in range(0,deg+1):
-            Na = basis.LagrangeBasisEvaluation(deg, xi_pts, xi, a)
+            Na = uni.LagrangeBasisEvaluation(deg, xi_pts, xi, a)
             fe[a] += w * Na * f_g * jac
     
     return fe
@@ -142,7 +140,7 @@ def EvaluateSolution(e,deg,x_pts,xi_basis,xi,dtotal,deriv=0,derv_multiplier=1):
         A = IEN(deg,a,e)
         dA = dtotal[A]
         if deriv == 0:
-            uhval += dA*basis.LagrangeBasisEvaluation(deg, xi_basis, xi, a)
+            uhval += dA*uni.LagrangeBasisEvaluation(deg, xi_basis, xi, a)
         elif deriv == 1:
             J = DeformationGradient1D(deg,[x_pts[0],x_pts[-1]],xi)
             uhval += derv_multiplier*dA*derv.LagrangeBasisParamDervEvaluation(deg, xi_basis, xi, a) / J
@@ -171,19 +169,85 @@ def EvaluateConvergence(deg,num_intervals,L,f,g,h,gaussian,num_iterations,exact_
     h_list = []
     xi_basis = np.linspace(-1, 1, deg+1)
     
+    def make_xvals(num_iterations_index):
+        num_elems = 2**(num_iterations_index + 1)
+        discretzn = np.linspace(0,L,num_elems+1) # global coords
+        return discretzn # discretization
+    
     if num_iterations < 2:
         sys.exit("Cannot compute convergence rates on fewer than two data points")
-    for i in range(0,num_iterations):
-        continue
-        # create a discretization with num_intervals equal elements
-        # solve for the solution vector, d
-        # compute the error in the solution from a given input solution
-        # store the error and the element length in error_list and h_list, respectively
+    
+    for i in range(0,num_iterations): # num_iterations = number of refinements; loop through the mesh elements
+        ## create a discretization with num_intervals equal elements
+        discretzn = make_xvals(i) # splitting up the domain (same domain, discretize differently)
+        num_elems = 2**(i + 1)
+        ## solve for the solution vector, d
+        dtotal = OneDFEM(deg, discretzn, f, g, h, gaussian) # total solution vector with boundary condition added
+            # coefficients for basis function 
+        # discretization is the x values we're looking at
+        # len(nodes-1) is number of elements
+        
+        ## compute the error in the solution from a given input solution
+        for e in range(0,num_elems+1):
+            x_nodes = np.linspace(discretzn[e],discretzn[e+1],deg+1)
+                # inside the node, split up for basis funcs
+            for g in range(0,gq.n_quad):
+                quad_pt = gq.quad_pts[g] # get the gth quadrature point out
+                quad_wt = gq.quad_wts[g] # get the gth quadrature weight
+                
+                # map the values from parametric domain to spatial domain
+                x_loc = xmap.XMap(deg, x_nodes, xi_basis, quad_pt)
+                # the xi points are the quadrature points; map into spatial domain, evaluate what it will be based on given soln
+                
+                # J = XMapDeriv(deg,x_nodes,xi_basis,quad_pt)
+                J = DeformationGradient1D(deg,[x_nodes[0],x_nodes[-1]],quad_pt)
+                
+                u_val = exact_sol(x_loc) # evaluate what the solution value is in the current x position
+                ux_val = exact_sol_derv(x_loc) # H1
+                
+                uhval = EvaluateSolution(e, deg, x_nodes, xi_basis, quad_pt, dtotal,0)
+                uhxval = EvaluateSolution(e, deg, x_nodes, xi_basis, quad_pt, dtotal,1)
+                
+                u_sub = u_val - uhval
+                ux_sub = ux_val - uhxval
+                
+                e_2 = quad_wt * (u_sub)**2 * J # equal to the square of the norm of the error
+                
+                # H1 things if the norm you're asking for is equal to 1
+                if normtype == 1:
+                    # db same, take deriv for Nb, divide by jacobian (what you do for the derivative of x stuff with basis function)
+                    e_2 = quad_wt * (ux_sub)**2 * J
+                    
+            elem_len = x_nodes[e+1] - x_nodes[e]
+            # element length: look at what the error does the more you refine (hopefully goes down)
+    
+        # log(e0_2) = 2log(e0)
+        # 0.5*log(e0_2) = log(e0)
+        # if log base 10: norm of error = 10^(0.5*log(e0_2))
+        e = 10**(0.5*np.log(e_2,10))
+            
+        ## store the error and the element length in error_list and h_list, respectively
+        # append at each iteration
+        error_list.append(e)
+        h_list.append(elem_len)
         
 
-    # take the log of h_list and error_list values
-    # find the slope of the log-h (in x) and log-error (in y) line
-    return
+    ## take the log of h_list and error_list values
+        # take log of the length of the discretization (if 2 elements, log of 1/2 (divide the total length by the number of elements))
+    # can do list comprehension to convert
+    # h list and error list should be same length
+    for i in range(len(h_list)):
+        # go to each list, get the log values
+        # log_h = np.log(h_list[i])
+        log_h_list = np.log(x for x in h_list)
+        log_e_list = np.array(np.log(x for x in error_list))
+        # multiply by 1/2 for only the error
+    
+    ## find the slope of the log-h (in x) and log-error (in y) line
+    # if curved, is a vector of slopes
+    beta = (log_e_list[-1]-log_e_list[-2])/(log_h_list[-1]-log_h_list[-2])
+    
+    return beta
             
     
 # Example software to use this code
@@ -198,7 +262,20 @@ def EvaluateAndPlotExample():
     x_nodes = np.linspace(0,L,num_nodes)
     d = OneDFEM(deg, x_nodes, f, g, h, quadrature)
     print(d)
-        
+    
+    # not sure about the inputs, change later
+    num_intervals = num_nodes - 1
+    num_iterations = 2
+    exact_sol = lambda x:np.exp(x)
+    
+    # Normtype 0 (L2)
+    beta0 = EvaluateConvergence(deg,num_intervals,L,f,g,h,gq,num_iterations,exact_sol,normtype=0,exact_sol_derv=lambda x:0)
+    print(f"Beta for L2 = {beta0}")
+    
+    # Normtype 1 (H1)
+    beta1 = EvaluateConvergence(deg,num_intervals,L,f,g,h,gq,num_iterations,exact_sol,normtype=1,exact_sol_derv=lambda x:0)
+    print(f"Beta for L2 = {beta1}")
+    
     PlotSolutionCurve(deg,x_nodes,d,n_samples=100,deriv=1)
 
 EvaluateAndPlotExample()
