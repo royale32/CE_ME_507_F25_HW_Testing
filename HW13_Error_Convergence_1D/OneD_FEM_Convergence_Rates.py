@@ -191,14 +191,15 @@ def EvaluateConvergence(deg,num_intervals,L,f,g,h,gaussian,num_iterations,exact_
             # coefficients for basis function 
         # discretization is the x values we're looking at
         # len(nodes-1) is number of elements
+        e_2 = 0
         
         ## compute the error in the solution from a given input solution
         for e in range(0,num_elems):
             x_nodes = np.linspace(discretzn[e],discretzn[e+1],deg+1)
                 # inside the node, split up for basis funcs
-            for g in range(0,gaussian.n_quad):
-                quad_pt = gaussian.quad_pts[g] # get the gth quadrature point out
-                quad_wt = gaussian.quad_wts[g] # get the gth quadrature weight
+            for r in range(0,gaussian.n_quad):
+                quad_pt = gaussian.quad_pts[r] # get the gth quadrature point out
+                quad_wt = gaussian.quad_wts[r] # get the gth quadrature weight
                 
                 # map the values from parametric domain to spatial domain
                 x_loc = xmap.XMap(deg, x_nodes, xi_basis, quad_pt)
@@ -218,13 +219,17 @@ def EvaluateConvergence(deg,num_intervals,L,f,g,h,gaussian,num_iterations,exact_
                 u_sub = u_val - uhval
                 ux_sub = ux_val - uhxval
                 
-                e_2 = quad_wt * (u_sub)**2 * J # equal to the square of the norm of the error
+                e_2 += quad_wt * (u_sub)**2 * J # equal to the square of the norm of the error
+                
+                
+                print("TMI")
+                print(x_nodes,quad_pt,quad_wt,x_loc,J,u_val,ux_val,uhval,uhxval,u_sub,ux_sub,e_2)
                 
                 # H1 things if the norm you're asking for is equal to 1
                 if normtype == 1:
                     # db same, take deriv for Nb, divide by jacobian (what you do for the derivative of x stuff with basis function)
                     # uhxval is already divided by J in the EvaluateSolution function (deriv = 1)
-                    e_2 = ((quad_wt * (u_sub))**2 * J) + ((quad_wt * (ux_sub))**2 *J)
+                    e_2 += ((quad_wt * (ux_sub))**2 *J)
                     
             elem_len = discretzn[e+1] - discretzn[e]
             # element length: look at what the error does the more you refine (hopefully goes down)
@@ -264,83 +269,52 @@ def EvaluateConvergence(deg,num_intervals,L,f,g,h,gaussian,num_iterations,exact_
     
     return beta
             
-# Example software to use this code
-def EvaluateAndPlotExample():
-    deg = 1
-    num_nodes = 10
-    L = 1
-    f = lambda x:np.exp(x)
-    g = 1
-    h = 1
-    quadrature = gq.GaussQuadrature(deg+3)
-    x_nodes = np.linspace(0,L,num_nodes)
-    d = OneDFEM(deg, x_nodes, f, g, h, quadrature)
-    print(d)
+# # Example software to use this code
+# def EvaluateAndPlotExample():
+#     deg = 1
+#     num_nodes = 10
+#     L = 1
+#     f = lambda x:np.exp(x)
+#     g = 1
+#     h = 1
+#     quadrature = gq.GaussQuadrature(deg+3)
+#     x_nodes = np.linspace(0,L,num_nodes)
+#     d = OneDFEM(deg, x_nodes, f, g, h, quadrature)
+#     print(d)
         
-    PlotSolutionCurve(deg,x_nodes,d,n_samples=100,deriv=0)
+#     PlotSolutionCurve(deg,x_nodes,d,n_samples=100,deriv=0)
 
-# EvaluateAndPlotExample()
+# # EvaluateAndPlotExample()
 
 
-## Problem 1 Values
-def Problem1():
-    deg = 1
-    num_nodes = 10
-    L = 1
-    f = lambda x:-np.exp(x)
-    g = 1
-    h = 1
-    quadrature = gq.GaussQuadrature(deg)
-    x_nodes = np.linspace(0,L,num_nodes)
-    d = OneDFEM(deg, x_nodes, f, g, h, quadrature)
+# ## Problem 1 Values
+# def Problem1():
+#     deg = 1
+#     num_nodes = 10
+#     L = 1
+#     f = lambda x:-np.exp(x)
+#     g = 1
+#     h = 1
+#     quadrature = gq.GaussQuadrature(deg)
+#     x_nodes = np.linspace(0,L,num_nodes)
+#     d = OneDFEM(deg, x_nodes, f, g, h, quadrature)
     
-    num_intervals = num_nodes - 1
-    num_iterations = 4      # change this
-    normtype=0
-    exact_sol = lambda x: g - np.exp(L) + (L-x)*(h+1) + np.exp(x)
-    exact_sol_derv=lambda x: -h - 1 + np.exp(x)
+#     num_intervals = num_nodes - 1
+#     num_iterations = 4      # change this
+#     normtype=0
+#     exact_sol = lambda x: g - np.exp(L) + (L-x)*(h+1) + np.exp(x)
+#     exact_sol_derv=lambda x: -h - 1 + np.exp(x)
     
-    rate = EvaluateConvergence(deg, num_intervals, L, f, g, h, quadrature, num_iterations, exact_sol,normtype,exact_sol_derv)
-    print(rate)
+#     rate = EvaluateConvergence(deg, num_intervals, L, f, g, h, quadrature, num_iterations, exact_sol,normtype,exact_sol_derv)
+#     print(rate)
     
-    PlotSolutionCurve(deg,x_nodes,d,n_samples=100,deriv=0)
+#     PlotSolutionCurve(deg,x_nodes,d,n_samples=100,deriv=0)
     
-    return rate
+#     return rate
 
-# Problem1()
+# # Problem1()
 
-"""
-# Ignore below for now
-# Example software to use this code
-def EvaluateAndPlotExample():
-    deg = 1
-    num_nodes = 10
-    L = 1
-    f = lambda x:np.exp(x)
-    g = 1
-    h = 1
-    quadrature = gq.GaussQuadrature(deg)
-    x_nodes = np.linspace(0,L,num_nodes)
-    d = OneDFEM(deg, x_nodes, f, g, h, quadrature)
-    print(d)
-    
-    # not sure about the inputs, change later
-    num_intervals = num_nodes - 1
-    num_iterations = 2
-    exact_sol = lambda x:np.exp(x)
-    
-    # Normtype 0 (L2)
-    beta0 = EvaluateConvergence(deg,num_intervals,L,f,g,h,gq,num_iterations,exact_sol,normtype=0,exact_sol_derv=lambda x:0)
-    print(f"Beta for L2 = {beta0}")
-    
-    # Normtype 1 (H1)
-    beta1 = EvaluateConvergence(deg,num_intervals,L,f,g,h,gq,num_iterations,exact_sol,normtype=1,exact_sol_derv=lambda x:0)
-    print(f"Beta for L2 = {beta1}")
-    
-    PlotSolutionCurve(deg,x_nodes,d,n_samples=100,deriv=1)
 
-EvaluateAndPlotExample()
-"""
 
 #### CHANGE VALUES TO MATCH PROB 3; inputs are good
 ### Problem 3
@@ -357,7 +331,7 @@ def FirstDegreeH0():
     d = OneDFEM(deg, x_nodes, f, g, h, quadrature)
     
     num_intervals = num_nodes - 1
-    num_iterations = 4      # change this
+    num_iterations = 2      # change this
     normtype=0
     exact_sol = lambda x: g - L + np.exp(L) + (L-x)*h + x - np.exp(x)
     exact_sol_derv=lambda x: -h + 1 - np.exp(x)
