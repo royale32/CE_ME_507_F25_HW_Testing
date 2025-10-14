@@ -222,8 +222,8 @@ def EvaluateConvergence(deg,num_intervals,L,f,g,h,gaussian,num_iterations,exact_
                 e_2 += quad_wt * (u_sub)**2 * J # equal to the square of the norm of the error
                 
                 
-                print("TMI")
-                print(x_nodes,quad_pt,quad_wt,x_loc,J,u_val,ux_val,uhval,uhxval,u_sub,ux_sub,e_2)
+                # print("TMI")
+                # print(x_nodes,quad_pt,quad_wt,x_loc,J,u_val,ux_val,uhval,uhxval,u_sub,ux_sub,e_2)
                 
                 # H1 things if the norm you're asking for is equal to 1
                 if normtype == 1:
@@ -263,9 +263,9 @@ def EvaluateConvergence(deg,num_intervals,L,f,g,h,gaussian,num_iterations,exact_
     # if curved, is a vector of slopes
     beta = (log_e_list[-1]-log_e_list[-2])/(log_h_list[-1]-log_h_list[-2])
     
-    print(h_list)
-    print(error_squared_list)
-    print()
+    # print(h_list)
+    # print(error_squared_list)
+    # print()
     
     return beta
             
@@ -471,7 +471,7 @@ def FifthDegreeH1():
 
 ## Call Functions
 
-FirstDegreeH0()
+# FirstDegreeH0()
 # FirstDegreeH1()
 # SecondDegreeH0()
 # SecondDegreeH1()
