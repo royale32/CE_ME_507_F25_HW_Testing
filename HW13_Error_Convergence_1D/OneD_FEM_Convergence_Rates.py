@@ -20,6 +20,7 @@ import LagrangeBasisFuncDerivative as derv
 import UniDimensionalXMap as xmap
 import Gaussian_Quadrature as gq
 
+
 def DeformationGradient1D(deg,x_bnds,xi):
     val = 0
     x_vals = np.linspace(x_bnds[0], x_bnds[-1], deg+1)
@@ -165,12 +166,15 @@ def PlotSolutionCurve(deg,x_nodes,dtotal,n_samples = 5,deriv = 0, derv_multiplie
     plt.plot(x,uh)
     
 def EvaluateConvergence(deg,num_intervals,L,f,g,h,gaussian,num_iterations,exact_sol,normtype=0,exact_sol_derv=lambda x:0):
-    error_list = []
+    error_squared_list = []
     h_list = []
     xi_basis = np.linspace(-1, 1, deg+1)
     
+    log_h_list = []
+    log_e_list = []
+    
     def make_xvals(num_iterations_index):
-        num_elems = 2**(num_iterations_index + 1)
+        num_elems = num_intervals*2**(num_iterations_index)
         discretzn = np.linspace(0,L,num_elems+1) # global coords
         return discretzn # discretization
     
@@ -180,7 +184,8 @@ def EvaluateConvergence(deg,num_intervals,L,f,g,h,gaussian,num_iterations,exact_
     for i in range(0,num_iterations): # num_iterations = number of refinements; loop through the mesh elements
         ## create a discretization with num_intervals equal elements
         discretzn = make_xvals(i) # splitting up the domain (same domain, discretize differently)
-        num_elems = 2**(i + 1)
+        num_elems = len(discretzn)-1
+        
         ## solve for the solution vector, d
         dtotal = OneDFEM(deg, discretzn, f, g, h, gaussian) # total solution vector with boundary condition added
             # coefficients for basis function 
@@ -188,12 +193,12 @@ def EvaluateConvergence(deg,num_intervals,L,f,g,h,gaussian,num_iterations,exact_
         # len(nodes-1) is number of elements
         
         ## compute the error in the solution from a given input solution
-        for e in range(0,num_elems+1):
+        for e in range(0,num_elems):
             x_nodes = np.linspace(discretzn[e],discretzn[e+1],deg+1)
                 # inside the node, split up for basis funcs
-            for g in range(0,gq.n_quad):
-                quad_pt = gq.quad_pts[g] # get the gth quadrature point out
-                quad_wt = gq.quad_wts[g] # get the gth quadrature weight
+            for g in range(0,gaussian.n_quad):
+                quad_pt = gaussian.quad_pts[g] # get the gth quadrature point out
+                quad_wt = gaussian.quad_wts[g] # get the gth quadrature weight
                 
                 # map the values from parametric domain to spatial domain
                 x_loc = xmap.XMap(deg, x_nodes, xi_basis, quad_pt)
@@ -202,11 +207,13 @@ def EvaluateConvergence(deg,num_intervals,L,f,g,h,gaussian,num_iterations,exact_
                 # J = XMapDeriv(deg,x_nodes,xi_basis,quad_pt)
                 J = DeformationGradient1D(deg,[x_nodes[0],x_nodes[-1]],quad_pt)
                 
-                u_val = exact_sol(x_loc) # evaluate what the solution value is in the current x position
+                # u
+                u_val = exact_sol(x_loc) # evaluate what the solution value is in the current x position for L2
                 ux_val = exact_sol_derv(x_loc) # H1
                 
-                uhval = EvaluateSolution(e, deg, x_nodes, xi_basis, quad_pt, dtotal,0)
-                uhxval = EvaluateSolution(e, deg, x_nodes, xi_basis, quad_pt, dtotal,1)
+                # uh
+                uhval = EvaluateSolution(e, deg, x_nodes, xi_basis, quad_pt, dtotal,deriv = 0)
+                uhxval = EvaluateSolution(e, deg, x_nodes, xi_basis, quad_pt, dtotal,deriv = 1) # H1
                 
                 u_sub = u_val - uhval
                 ux_sub = ux_val - uhxval
@@ -216,19 +223,20 @@ def EvaluateConvergence(deg,num_intervals,L,f,g,h,gaussian,num_iterations,exact_
                 # H1 things if the norm you're asking for is equal to 1
                 if normtype == 1:
                     # db same, take deriv for Nb, divide by jacobian (what you do for the derivative of x stuff with basis function)
-                    e_2 = quad_wt * (ux_sub)**2 * J
+                    # uhxval is already divided by J in the EvaluateSolution function (deriv = 1)
+                    e_2 = ((quad_wt * (u_sub))**2 * J) + ((quad_wt * (ux_sub))**2 *J)
                     
-            elem_len = x_nodes[e+1] - x_nodes[e]
+            elem_len = discretzn[e+1] - discretzn[e]
             # element length: look at what the error does the more you refine (hopefully goes down)
     
         # log(e0_2) = 2log(e0)
         # 0.5*log(e0_2) = log(e0)
-        # if log base 10: norm of error = 10^(0.5*log(e0_2))
-        e = 10**(0.5*np.log(e_2,10))
+        # if log base 10: norm of error = 10^(0.5*log(e0_2)        
+        # e = 10**(0.5*np.log(e_2,10))
             
         ## store the error and the element length in error_list and h_list, respectively
         # append at each iteration
-        error_list.append(e)
+        error_squared_list.append(e_2)
         h_list.append(elem_len)
         
 
@@ -236,20 +244,73 @@ def EvaluateConvergence(deg,num_intervals,L,f,g,h,gaussian,num_iterations,exact_
         # take log of the length of the discretization (if 2 elements, log of 1/2 (divide the total length by the number of elements))
     # can do list comprehension to convert
     # h list and error list should be same length
+    # log_h_list = np.log(x for x in h_list)
     for i in range(len(h_list)):
         # go to each list, get the log values
         # log_h = np.log(h_list[i])
-        log_h_list = np.log(x for x in h_list)
-        log_e_list = np.array(np.log(x for x in error_list))
+        log_h = np.log(h_list[i])
+        log_h_list.append(log_h)
+        log_e = 0.5*np.log(error_squared_list[i])
+        log_e_list.append(log_e)
         # multiply by 1/2 for only the error
     
     ## find the slope of the log-h (in x) and log-error (in y) line
     # if curved, is a vector of slopes
     beta = (log_e_list[-1]-log_e_list[-2])/(log_h_list[-1]-log_h_list[-2])
     
+    print(h_list)
+    print(error_squared_list)
+    print()
+    
     return beta
             
+# Example software to use this code
+def EvaluateAndPlotExample():
+    deg = 1
+    num_nodes = 10
+    L = 1
+    f = lambda x:np.exp(x)
+    g = 1
+    h = 1
+    quadrature = gq.GaussQuadrature(deg+3)
+    x_nodes = np.linspace(0,L,num_nodes)
+    d = OneDFEM(deg, x_nodes, f, g, h, quadrature)
+    print(d)
+        
+    PlotSolutionCurve(deg,x_nodes,d,n_samples=100,deriv=0)
+
+# EvaluateAndPlotExample()
+
+
+## Problem 1 Values
+def Problem1():
+    deg = 1
+    num_nodes = 10
+    L = 1
+    f = lambda x:-np.exp(x)
+    g = 1
+    h = 1
+    quadrature = gq.GaussQuadrature(deg)
+    x_nodes = np.linspace(0,L,num_nodes)
+    d = OneDFEM(deg, x_nodes, f, g, h, quadrature)
     
+    num_intervals = num_nodes - 1
+    num_iterations = 4      # change this
+    normtype=0
+    exact_sol = lambda x: g - np.exp(L) + (L-x)*(h+1) + np.exp(x)
+    exact_sol_derv=lambda x: -h - 1 + np.exp(x)
+    
+    rate = EvaluateConvergence(deg, num_intervals, L, f, g, h, quadrature, num_iterations, exact_sol,normtype,exact_sol_derv)
+    print(rate)
+    
+    PlotSolutionCurve(deg,x_nodes,d,n_samples=100,deriv=0)
+    
+    return rate
+
+# Problem1()
+
+"""
+# Ignore below for now
 # Example software to use this code
 def EvaluateAndPlotExample():
     deg = 1
@@ -279,3 +340,166 @@ def EvaluateAndPlotExample():
     PlotSolutionCurve(deg,x_nodes,d,n_samples=100,deriv=1)
 
 EvaluateAndPlotExample()
+"""
+
+#### CHANGE VALUES TO MATCH PROB 3; inputs are good
+### Problem 3
+## Deg = 1
+def FirstDegreeH0():
+    deg = 1
+    num_nodes = 10
+    L = 1
+    f = lambda x: np.exp(x)
+    g = 1
+    h = 1
+    quadrature = gq.GaussQuadrature(deg)
+    x_nodes = np.linspace(0,L,num_nodes)
+    d = OneDFEM(deg, x_nodes, f, g, h, quadrature)
+    
+    num_intervals = num_nodes - 1
+    num_iterations = 4      # change this
+    normtype=0
+    exact_sol = lambda x: g - L + np.exp(L) + (L-x)*h + x - np.exp(x)
+    exact_sol_derv=lambda x: -h + 1 - np.exp(x)
+    
+    rate = EvaluateConvergence(deg, num_intervals, L, f, g, h, quadrature, num_iterations, exact_sol,normtype,exact_sol_derv)
+    print(rate)
+    
+    PlotSolutionCurve(deg,x_nodes,d,n_samples=100,deriv=0)
+    
+    return rate
+
+def FirstDegreeH1():
+    deg = 1
+    num_nodes = 10
+    L = 1
+    f = lambda x: np.exp(x)
+    g = 1
+    h = 1
+    quadrature = gq.GaussQuadrature(deg)
+    x_nodes = np.linspace(0,L,num_nodes)
+    d = OneDFEM(deg, x_nodes, f, g, h, quadrature)
+    
+    num_intervals = num_nodes - 1
+    num_iterations = 3      # change this
+    normtype=1
+    exact_sol = lambda x: g - L + np.exp(L) + (L-x)*h + x - np.exp(x)
+    exact_sol_derv=lambda x: -h + 1 - np.exp(x)
+    
+    rate = EvaluateConvergence(deg, num_intervals, L, f, g, h, quadrature, num_iterations, exact_sol,normtype,exact_sol_derv)
+    print(rate)
+    
+    PlotSolutionCurve(deg,x_nodes,d,n_samples=100,deriv=1)
+    
+    return rate
+
+
+## Deg = 2
+def SecondDegreeH0():
+    deg = 2
+    num_nodes = 10
+    L = 1
+    f = lambda x: np.exp(x)
+    g = 1
+    h = 1
+    quadrature = gq.GaussQuadrature(deg)
+    x_nodes = np.linspace(0,L,num_nodes)
+    d = OneDFEM(deg, x_nodes, f, g, h, quadrature)
+    
+    num_intervals = num_nodes - 1
+    num_iterations = 3      # change this
+    normtype=0
+    exact_sol = lambda x: g - L + np.exp(L) + (L-x)*h + x - np.exp(x)
+    exact_sol_derv=lambda x: -h + 1 - np.exp(x)
+    
+    rate = EvaluateConvergence(deg, num_intervals, L, f, g, h, quadrature, num_iterations, exact_sol,normtype,exact_sol_derv)
+    print(rate)
+    
+    PlotSolutionCurve(deg,x_nodes,d,n_samples=100,deriv=1)
+    
+    return rate
+
+def SecondDegreeH1():
+    deg = 2
+    num_nodes = 10
+    L = 1
+    f = lambda x: np.exp(x)
+    g = 1
+    h = 1
+    quadrature = gq.GaussQuadrature(deg)
+    x_nodes = np.linspace(0,L,num_nodes)
+    d = OneDFEM(deg, x_nodes, f, g, h, quadrature)
+    
+    num_intervals = num_nodes - 1
+    num_iterations = 3      # change this
+    normtype=1
+    exact_sol = lambda x: g - L + np.exp(L) + (L-x)*h + x - np.exp(x)
+    exact_sol_derv=lambda x: -h + 1 - np.exp(x)
+    
+    rate = EvaluateConvergence(deg, num_intervals, L, f, g, h, quadrature, num_iterations, exact_sol,normtype,exact_sol_derv)
+    print(rate)
+    
+    PlotSolutionCurve(deg,x_nodes,d,n_samples=100,deriv=1)
+    
+    return rate
+
+
+## Deg = 5
+def FifthDegreeH0():
+    deg = 5
+    num_nodes = 10
+    L = 1
+    f = lambda x: np.exp(x)
+    g = 1
+    h = 1
+    quadrature = gq.GaussQuadrature(deg)
+    x_nodes = np.linspace(0,L,num_nodes)
+    d = OneDFEM(deg, x_nodes, f, g, h, quadrature)
+    
+    num_intervals = num_nodes - 1
+    num_iterations = 3      # change this
+    normtype=0
+    exact_sol = lambda x: g - L + np.exp(L) + (L-x)*h + x - np.exp(x)
+    exact_sol_derv=lambda x: -h + 1 - np.exp(x)
+    
+    rate = EvaluateConvergence(deg, num_intervals, L, f, g, h, quadrature, num_iterations, exact_sol,normtype,exact_sol_derv)
+    print(rate)
+    
+    PlotSolutionCurve(deg,x_nodes,d,n_samples=100,deriv=1)
+    
+    return rate
+
+def FifthDegreeH1():
+    deg = 5
+    num_nodes = 10
+    L = 1
+    f = lambda x: np.exp(x)
+    g = 1
+    h = 1
+    quadrature = gq.GaussQuadrature(deg)
+    x_nodes = np.linspace(0,L,num_nodes)
+    d = OneDFEM(deg, x_nodes, f, g, h, quadrature)
+    
+    num_intervals = num_nodes - 1
+    num_iterations = 4      # change this
+    normtype=1
+    exact_sol = lambda x: g - L + np.exp(L) + (L-x)*h + x - np.exp(x)
+    exact_sol_derv=lambda x: -h + 1 - np.exp(x)
+    
+    rate = EvaluateConvergence(deg, num_intervals, L, f, g, h, quadrature, num_iterations, exact_sol,normtype,exact_sol_derv)
+    print(rate)
+    
+    PlotSolutionCurve(deg,x_nodes,d,n_samples=100,deriv=1)
+    
+    return rate
+
+
+
+## Call Functions
+
+FirstDegreeH0()
+# FirstDegreeH1()
+# SecondDegreeH0()
+# SecondDegreeH1()
+# FifthDegreeH0()
+# FifthDegreeH1()
